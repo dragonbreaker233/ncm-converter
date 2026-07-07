@@ -1,0 +1,6 @@
+# NCM 测试文件
+*.ncm
+
+# Python
+__pycache__/
+*.pyc
