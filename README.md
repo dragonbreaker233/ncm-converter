@@ -10,16 +10,22 @@
 ## 🚀 快速开始
 
 ```bash
-# 1. 安装依赖
+# 1. 下载到本地（随便放哪里都行）
+git clone https://github.com/dragonbreaker233/ncm-converter.git
+cd ncm-converter
+
+# 2. 安装依赖（只做一次）
 pip install -r requirements.txt
 
-# 2. 转换（二选一）
+# 3. 开用！
 #    命令行：
 python ncm_converter.py 你的歌曲.ncm
 
 #    或者双击打开图形界面拖拽：
 #    ncm_converter_gui.pyw
 ```
+
+> 💡 **不会安装到系统里**，工具就在你 `git clone` 时选的文件夹里，直接运行就行。转换后的 MP3 默认在源文件同目录。
 
 就这么简单，**解密后直接写出原始文件，音质无损**。
 
