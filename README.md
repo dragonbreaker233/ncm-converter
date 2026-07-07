@@ -7,6 +7,24 @@
 
 > NCM 只是对原始音频文件加了一层加密壳，本工具解密后直接写出原始音频数据，和你在网易云听到的音质一模一样。
 
+## 🚀 快速开始
+
+```bash
+# 1. 安装依赖
+pip install -r requirements.txt
+
+# 2. 转换（二选一）
+#    命令行：
+python ncm_converter.py 你的歌曲.ncm
+
+#    或者双击打开图形界面拖拽：
+#    ncm_converter_gui.pyw
+```
+
+就这么简单，**解密后直接写出原始文件，音质无损**。
+
+---
+
 ## ✨ 两种使用方式
 
 ### 🖱️ 图形界面（推荐）
@@ -29,7 +47,7 @@ python ncm_converter.py D:\Music\NCM\
 # 指定输出目录
 python ncm_converter.py *.ncm -o D:\Music\MP3\
 
-# 递归转换
+# 递归转换 ＋ 提取封面
 python ncm_converter.py D:\Music\ -r --cover
 ```
 
