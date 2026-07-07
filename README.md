@@ -7,27 +7,31 @@
 
 > NCM 只是对原始音频文件加了一层加密壳，本工具解密后直接写出原始音频数据，和你在网易云听到的音质一模一样。
 
-## 🚀 快速开始
+## 🚀 快速开始（三步搞定）
+
+### 第一步：下载工具
+
+点击这个页面右上角的绿色 **「<> Code」** 按钮 → 点 **「Download ZIP」** → 把下载的压缩包解压到任意文件夹（比如桌面）。
+
+### 第二步：装 Python
+
+如果电脑已经有 Python 3.8 或更高版本，跳过这步。
+
+没有的话去 [python.org](https://www.python.org/downloads/) 下载安装，**安装时记得勾选「Add Python to PATH」**。
+
+### 第三步：装依赖 + 开用
+
+打开刚解压的文件夹，在地址栏输入 `cmd` 回车，然后：
 
 ```bash
-# 1. 下载到本地（随便放哪里都行）
-git clone https://github.com/dragonbreaker233/ncm-converter.git
-cd ncm-converter
-
-# 2. 安装依赖（只做一次）
 pip install -r requirements.txt
-
-# 3. 开用！
-#    命令行：
-python ncm_converter.py 你的歌曲.ncm
-
-#    或者双击打开图形界面拖拽：
-#    ncm_converter_gui.pyw
 ```
 
-> 💡 **不会安装到系统里**，工具就在你 `git clone` 时选的文件夹里，直接运行就行。转换后的 MP3 默认在源文件同目录。
+装完之后，双击 `ncm_converter_gui.pyw`，把 `.ncm` 文件拖进去就完事了。
 
-就这么简单，**解密后直接写出原始文件，音质无损**。
+---
+
+> 💡 转换后的 MP3 默认在源文件同目录。工具不会安装到系统里，删掉文件夹就等于卸载。
 
 ---
 
