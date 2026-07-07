@@ -17,7 +17,15 @@
 
 如果电脑已经有 Python 3.8 或更高版本，跳过这步。
 
-没有的话去 [python.org](https://www.python.org/downloads/) 下载安装，**安装时记得勾选「Add Python to PATH」**。
+**Windows 10 / 11 用户**（一键安装）：
+
+打开开始菜单，搜 `cmd` 打开命令提示符，复制下面这行进去回车：
+
+```bash
+winget install Python.Python.3.12
+```
+
+**或者手动下载**：[python.org 下载页面](https://www.python.org/downloads/)，下载后安装，**安装时记得勾选「Add Python to PATH」**。
 
 ### 第三步：装依赖 + 开用
 
