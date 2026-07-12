@@ -44,7 +44,7 @@ class NCMConverterGUI:
 
     def __init__(self):
         self.root = TkinterDnD.Tk()
-        self.root.title("NCM → MP3 转换器")
+        self.root.title("NCM/FLAC → MP3 转换器")
         self.root.geometry("680x520")
         self.root.minsize(500, 400)
         self.root.configure(bg=BG)
@@ -92,10 +92,10 @@ class NCMConverterGUI:
         header = ttk.Frame(self.root)
         header.pack(fill="x", padx=20, pady=(20, 0))
 
-        ttk.Label(header, text="NCM → MP3 转换器",
+        ttk.Label(header, text="NCM / FLAC → MP3 转换器",
                   font=("Microsoft YaHei UI", 18, "bold"),
                   foreground=ACCENT).pack(side="left")
-        ttk.Label(header, text="拖入文件，自动转换",
+        ttk.Label(header, text="拖入 NCM/FLAC，自动转 MP3",
                   font=("Microsoft YaHei UI", 10),
                   foreground="#6c7086").pack(side="left", padx=(12, 0))
 
@@ -111,7 +111,7 @@ class NCMConverterGUI:
 
         self.drop_label = tk.Label(
             self.drop_frame,
-            text="拖拽 .ncm 文件到这里",
+            text="拖拽 .ncm / .flac 文件到这里",
             font=("Microsoft YaHei UI", 13),
             bg=BG2, fg="#6c7086",
         )
@@ -225,8 +225,10 @@ class NCMConverterGUI:
 
     def _select_files(self):
         files = filedialog.askopenfilenames(
-            title="选择 NCM 文件",
-            filetypes=[("NCM 文件", "*.ncm"), ("所有文件", "*.*")],
+            title="选择文件",
+            filetypes=[("支持的文件", "*.ncm;*.flac;*.wav"), ("NCM 文件", "*.ncm"),
+                       ("FLAC 文件", "*.flac"), ("WAV 文件", "*.wav"),
+                       ("所有文件", "*.*")],
         )
         if files:
             self._start_conversion(files)
@@ -243,12 +245,12 @@ class NCMConverterGUI:
             messagebox.showwarning("正在转换", "请等待当前任务完成")
             return
 
-        ncm_files = [f for f in files if f.lower().endswith(".ncm")]
-        if not ncm_files:
-            messagebox.showinfo("提示", "未找到 .ncm 文件")
+        supported = [f for f in files if f.lower().endswith((".ncm", ".flac", ".wav"))]
+        if not supported:
+            messagebox.showinfo("提示", "未找到 .ncm / .flac / .wav 文件")
             return
 
-        self.total_files = len(ncm_files)
+        self.total_files = len(supported)
         self.done_files = 0
         self.fail_files = 0
         self.progress["maximum"] = self.total_files
@@ -259,7 +261,7 @@ class NCMConverterGUI:
         self.status_label.configure(text=f"转换中... 0/{self.total_files}")
 
         # 后台线程处理
-        thread = threading.Thread(target=self._worker, args=(ncm_files,),
+        thread = threading.Thread(target=self._worker, args=(supported,),
                                   daemon=True)
         thread.start()
 
@@ -283,6 +285,28 @@ class NCMConverterGUI:
 
     def _convert_one(self, file_path: str, out_dir: str | None) -> tuple:
         """转换单个文件，返回 (ok: bool, msg: str)."""
+        ext = os.path.splitext(file_path)[1].lower()
+
+        if out_dir:
+            dest_dir = out_dir
+        else:
+            dest_dir = os.path.dirname(file_path)
+
+        # ── FLAC/WAV 直接用 ffmpeg 转 MP3 ──
+        if ext in (".flac", ".wav"):
+            try:
+                name = Path(file_path).stem + ".mp3"
+                dest_path = os.path.join(dest_dir, name)
+                os.makedirs(dest_dir, exist_ok=True)
+                flac_to_mp3(file_path, dest_path, delete_flac=False)
+                size_mb = os.path.getsize(dest_path) / (1024 * 1024)
+                return True, f"{name} ({size_mb:.1f} MB)"
+            except RuntimeError as e:
+                return False, f"转码失败: {e}"
+            except Exception as e:
+                return False, f"错误: {e}"
+
+        # ── NCM 解密 ──
         try:
             header = decrypt_ncm_header(file_path)
             audio = decrypt_audio_stream(file_path, header)
