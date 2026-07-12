@@ -9,7 +9,7 @@
   - allenfrostline/pyNCMDUMP (Python)
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 import sys
 import os
@@ -18,6 +18,8 @@ import json
 import base64
 import struct
 import argparse
+import subprocess
+import shutil
 import textwrap
 from pathlib import Path
 
@@ -333,6 +335,63 @@ def detect_format(decrypted_audio: bytes) -> str:
     return "unknown"
 
 
+# ── FLAC → MP3 转码（调用 ffmpeg）─────────────────────────────────
+
+def _find_ffmpeg() -> str | None:
+    """查找 ffmpeg 可执行文件路径."""
+    # 优先检查脚本同目录下的 ffmpeg.exe（便携版）
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    local_ffmpeg = os.path.join(script_dir, "ffmpeg.exe")
+    if os.path.isfile(local_ffmpeg):
+        return local_ffmpeg
+    # 其次检查 PATH 中是否有
+    if shutil.which("ffmpeg"):
+        return "ffmpeg"
+    return None
+
+
+def flac_to_mp3(flac_path: str, mp3_path: str | None = None,
+                bitrate: str = "320k", delete_flac: bool = False) -> bool:
+    """用 ffmpeg 将 FLAC 转为 MP3（320kbps 高品质）.
+
+    Args:
+        flac_path: FLAC 文件路径
+        mp3_path: 输出 MP3 路径，None 则自动命名
+        bitrate: 码率，默认 320k
+        delete_flac: 是否删除原始 FLAC 文件
+
+    Returns:
+        成功返回 True，失败抛出 RuntimeError
+    """
+    ffmpeg = _find_ffmpeg()
+    if not ffmpeg:
+        raise RuntimeError(
+            "未找到 ffmpeg，请:\n"
+            "  1) 下载 ffmpeg.exe 放到本工具同目录\n"
+            "  2) 或安装 ffmpeg 并加入系统 PATH\n"
+            "  下载地址: https://www.gyan.dev/ffmpeg/builds/ (选 ffmpeg-release-essentials.zip)"
+        )
+
+    if mp3_path is None:
+        mp3_path = os.path.splitext(flac_path)[0] + ".mp3"
+
+    cmd = [
+        ffmpeg, "-y", "-i", flac_path,
+        "-codec:a", "libmp3lame", "-b:a", bitrate,
+        "-map_metadata", "0", "-id3v2_version", "3",
+        mp3_path,
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True,
+                            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg 转码失败: {result.stderr.strip().split(chr(10))[-1]}")
+
+    if delete_flac:
+        os.remove(flac_path)
+
+    return True
+
+
 # ── File Processing ────────────────────────────────────────────────
 
 def convert_file(
@@ -340,6 +399,7 @@ def convert_file(
     output_dir: str | None = None,
     force: bool = False,
     extract_cover: bool = False,
+    to_mp3: bool = False,
 ) -> tuple:
     """转换单个 NCM 文件.
 
@@ -395,7 +455,18 @@ def convert_file(
         except Exception as e:
             cover_msg = f", 封面提取失败: {e}"
 
-    return True, f"[OK] {output_name}{cover_msg}"
+    # ── 7. 可选：FLAC → MP3 转码 ──
+    transcode_msg = ""
+    if to_mp3 and audio_format in ("flac", "wav", "ogg"):
+        try:
+            mp3_name = Path(output_name).stem + ".mp3"
+            mp3_path = os.path.join(output_dir, mp3_name)
+            flac_to_mp3(output_path, mp3_path, delete_flac=True)
+            transcode_msg = f" → {mp3_name}"
+        except RuntimeError as e:
+            transcode_msg = f" (转MP3失败: {e})"
+
+    return True, f"[OK] {output_name}{cover_msg}{transcode_msg}"
 
 
 # ── Batch Discovery ────────────────────────────────────────────────
@@ -479,6 +550,10 @@ def main() -> int:
         help="同时提取封面图（保存为 .jpg）",
     )
     parser.add_argument(
+        "--to-mp3", action="store_true",
+        help="NCM 解密后若为 FLAC/WAV，自动用 ffmpeg 转为 MP3（320kbps）",
+    )
+    parser.add_argument(
         "-v", "--version", action="version",
         version=f"ncm_converter {__version__}",
     )
@@ -507,7 +582,7 @@ def main() -> int:
         if not args.quiet:
             print(f"[{i}/{len(ncm_files)}] {os.path.basename(f)}")
 
-        ok, msg = convert_file(f, args.output_dir, args.force, args.cover)
+        ok, msg = convert_file(f, args.output_dir, args.force, args.cover, to_mp3=args.to_mp3)
 
         if ok:
             success_count += 1

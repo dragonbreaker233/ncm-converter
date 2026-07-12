@@ -18,6 +18,7 @@ from ncm_converter import (
     decrypt_audio_stream,
     generate_filename,
     detect_format,
+    flac_to_mp3,
     NotNCMFileError,
     DecryptionError,
 )
@@ -51,6 +52,7 @@ class NCMConverterGUI:
         # 状态
         self.output_dir = tk.StringVar(value="")
         self.extract_cover = tk.BooleanVar(value=False)
+        self.to_mp3 = tk.BooleanVar(value=True)
         self.convert_queue = queue.Queue()
         self.is_converting = False
         self.total_files = 0
@@ -156,6 +158,12 @@ class NCMConverterGUI:
 
         ttk.Button(bottom, text="浏览", command=self._browse_dir,
                    padding=(8, 4)).pack(side="left", padx=(2, 16))
+
+        # FLAC转MP3 复选框
+        self.mp3_cb = ttk.Checkbutton(
+            bottom, text="FLAC 自动转 MP3", variable=self.to_mp3,
+        )
+        self.mp3_cb.pack(side="left", padx=(0, 8))
 
         # 封面复选框
         self.cover_cb = ttk.Checkbutton(
@@ -306,7 +314,19 @@ class NCMConverterGUI:
                     pass
 
             size_mb = len(audio) / (1024 * 1024)
-            return True, f"{name} ({size_mb:.1f} MB){cover_msg}"
+            msg = f"{name} ({size_mb:.1f} MB){cover_msg}"
+
+            # FLAC->MP3
+            if self.to_mp3.get() and fmt in ("flac", "wav", "ogg"):
+                try:
+                    mp3_name = Path(name).stem + ".mp3"
+                    mp3_path = os.path.join(dest_dir, mp3_name)
+                    flac_to_mp3(dest_path, mp3_path, delete_flac=True)
+                    msg += f" -> {mp3_name}"
+                except RuntimeError as e:
+                    msg += f" (转MP3失败: {e})"
+
+            return True, msg
 
         except NotNCMFileError:
             return False, "不是有效的 NCM 文件"
